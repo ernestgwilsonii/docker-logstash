@@ -1,0 +1,12 @@
+version: '3.2'
+
+services:
+
+  my-logstash:
+    image: ernestgwilsonii/my-logstash:1.0.0
+    ports:
+      - 9600:9600
+      - 5044:5044
+    deploy:
+      labels:
+        local.description: "Production grade Logstash"
