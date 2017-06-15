@@ -6,8 +6,11 @@ Based on openjdk:8-jre-alpine to keep the container size small
 #### Build the Docker container:
 docker build -t my-logstash:1.0.0 .
 ## ==================================================
-#### Launch the container on a stand-alone Docker engine:
-docker run --name my-logstash -d -p 9600:9600 my-logstash:1.0.0 -f /etc/logstash.conf --http.host 0.0.0.0
+#### Launch the container on a stand-alone Docker engine with the built-in /etc/logstash.conf file:
+docker run -d --name my-logstash -p 514:514/udp -p 514:514 -p 127.0.0.1:9600:9600 my-logstash:1.0.0
+## ==================================================
+#### Launch the container on a stand-alone Docker engine using your custom logstash.conf file:
+docker run -d --name my-logstash -p 514:514/udp -p 514:514 -p 127.0.0.1:9600:9600 -v /Your/Custom/logstash.conf:/etc/logstash.conf my-logstash:1.0.0
 ## ==================================================
 #### Verify Logstash responds to API calls:
 curl -XGET '127.0.0.1:9600/?pretty'
@@ -18,3 +21,4 @@ docker-compose up -d
 #### Deploy to a Docker Swarm:
 docker stack deploy --compose-file=docker-compose.yml my-logstash
 ## ==================================================
+

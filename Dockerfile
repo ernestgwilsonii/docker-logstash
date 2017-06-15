@@ -10,14 +10,10 @@ RUN addgroup -S logstash && adduser -S -G logstash logstash
 # Install requirements
 RUN apk add --no-cache \
   bash \
-  ca-certificates \
   curl \
-  gnupg \
   libc6-compat \
   libzmq \
-  openssl \
-  su-exec \
-  tar
+  su-exec 
 
 # https://www.elastic.co/guide/en/logstash/5.0/installing-logstash.html#_apt
 # https://artifacts.elastic.co/GPG-KEY-elasticsearch
@@ -40,6 +36,13 @@ RUN set -ex; \
                 exit 1; \
         fi; \
         \
+        apk add --no-cache --virtual .fetch-deps \
+                ca-certificates \
+                gnupg \
+                openssl \
+                tar \
+        ; \
+        \
         wget -O logstash.tar.gz "$LOGSTASH_TARBALL"; \
         \
         if [ "$LOGSTASH_TARBALL_SHA1" ]; then \
@@ -60,36 +63,21 @@ RUN set -ex; \
         tar -xf logstash.tar.gz --strip-components=1 -C "$dir"; \
         rm logstash.tar.gz; \
         \
-        apk del .fetch-deps; \
-        \
-        export LS_SETTINGS_DIR="$dir/config"; \
-# Empty log4j2.properties file so the default only logs errors to the console
-        if [ -f "$LS_SETTINGS_DIR/log4j2.properties" ]; then \
-                cp "$LS_SETTINGS_DIR/log4j2.properties" "$LS_SETTINGS_DIR/log4j2.properties.dist"; \
-                truncate -s 0 "$LS_SETTINGS_DIR/log4j2.properties"; \
-        fi; \
-        \
-        logstash --version
+        apk del .fetch-deps;
 
 # Copy any defult Logstash config files that you want to override (if any - normally we just use the default that comes with Logstash.tar.gz)
 # COPY blah /usr/share/logstash/config/
 
 # Install specific Logstash plug-ins
+# https://www.elastic.co/guide/en/logstash/current/working-with-plugins.html
 RUN logstash-plugin install logstash-input-beats
 
 # Copy in our specific Logstash configuration file
 COPY logstash.conf /etc/logstash.conf
 
 # Set directory / file permissions
-RUN for userDir in \
-      "$dir/config" \
-      "$dir/data" \
-    ; do \
-        if [ -d "$userDir" ]; then \
-          chown -R logstash:logstash "$userDir"; \
-        fi; \
-        done;
+RUN chown -R logstash:logstash /usr/share/logstash; chmod -R a+w /usr/share/logstash/data; logstash --version;
 
-COPY docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["-e", ""]
+ENTRYPOINT ["/usr/share/logstash/bin/logstash"]
+CMD ["-f", "/etc/logstash.conf", "--http.host", "0.0.0.0"]
+
